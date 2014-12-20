@@ -6,6 +6,7 @@ import time
 import sys, os
 
 # Gstreamer 0.10 imports
+import gobject
 import pygst
 pygst.require("0.10")
 import gst
@@ -13,6 +14,8 @@ import pygtk
 import gtk
 
 import json
+
+gobject.threads_init()
 
 sockets = []
 
@@ -49,10 +52,10 @@ class MainPipeline():
 
     def pull_frame(self, sink):
         # second param appears to be the sink itself
-        sample = self.videosink.emit("pull-sample")
+        sample = self.videosink.get_property('last-buffer')
         if sample is not None:
-            self.current_buffer = sample.get_buffer()
-            current_data = self.current_buffer.extract_dup(0, self.current_buffer.get_size())
+            self.current_buffer = sample
+            current_data = self.current_buffer.data
             send_all(current_data)
         return False
 
@@ -75,7 +78,7 @@ class MainPipeline():
         self.videosink.set_property("drop", True)
         self.videosink.set_property("emit-signals", True)
         self.videosink.set_property("sync", False)
-        self.videosink.connect("new-sample", self.pull_frame)
+        self.videosink.connect("new-buffer", self.pull_frame)
 
         # add all the new elements to the pipeline
         print("Adding Elements to Pipeline")
@@ -85,8 +88,8 @@ class MainPipeline():
 
         # link the elements in order, adding a filter to ensure correct size and framerate
         print("Linking GST Elements")
-        self.videosrc.link_filtered(self.videoenc,
-            gst.caps_from_string('video/x-raw,width=640,height=480,format=YUY2,framerate=30/1'))
+        self.videosrc.link(self.videoenc,
+            gst.caps_from_string('video/x-raw-yuv,width=640,height=480,framerate=30/1'))
         self.videoenc.link(self.videosink)
 
         # start the video
