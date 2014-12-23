@@ -15,7 +15,6 @@ sockets = []
 frame_grabber = None
 
 def send_all(msg):
-    #print(type(msg))
     for ws in sockets:
         ws.write_message(msg, True)
 
@@ -24,7 +23,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         global sockets
         sockets.append(self)
         print 'new connection'
-        self.write_message("Hello World")
 
     def on_message(self, message):
         print 'message received %s' % message
@@ -47,43 +45,47 @@ class MainPipeline():
 
     def pull_frame(self, sink):
         # second param appears to be the sink itself
-        #print("Pulling new sample")
         sample = self.videosink.emit("pull-sample")
         if sample is not None:
-            #print(sample)
-            #print("getting buffer from sample")
             self.current_buffer = sample.get_buffer()
-            #print("getting data from buffer")
             current_data = self.current_buffer.extract_dup(0, self.current_buffer.get_size())
-            #print("sending data over all sockets")
             send_all(current_data)
         return False
-
-    def get_buffer(self):
-        return self.current_buffer
 
     def gst_thread(self):
         print("Initializing GST Elements")
         Gst.init(None)
+
         self.pipeline = Gst.Pipeline.new("framegrabber")
+
+        # instantiate the camera source
         self.videosrc = Gst.ElementFactory.make("v4l2src", "vid-src")
         self.videosrc.set_property("device", "/dev/video0")
+
+        # instantiate the jpeg encoder
         self.videoenc = Gst.ElementFactory.make("jpegenc", "vid-enc")
+
+        # instantiate the appsink - allows access to raw frame data
         self.videosink = Gst.ElementFactory.make("appsink", "vid-sink")
         self.videosink.set_property("max-buffers", 3)
+        self.videosink.set_property("drop", True)
         self.videosink.set_property("emit-signals", True)
         self.videosink.set_property("sync", False)
         self.videosink.connect("new-sample", self.pull_frame)
 
+        # add all the new elements to the pipeline
         print("Adding Elements to Pipeline")
         self.pipeline.add(self.videosrc)
         self.pipeline.add(self.videoenc)
         self.pipeline.add(self.videosink)
 
+        # link the elements in order, adding a filter to ensure correct size and framerate
         print("Linking GST Elements")
-        self.videosrc.link(self.videoenc)
+        self.videosrc.link_filtered(self.videoenc,
+            Gst.caps_from_string('video/x-raw,width=640,height=480,format=YUY2,framerate=30/1'))
         self.videoenc.link(self.videosink)
 
+        # start the video
         print("Setting Pipeline State")
         self.pipeline.set_state(Gst.State.PAUSED)
         self.pipeline.set_state(Gst.State.PLAYING)
