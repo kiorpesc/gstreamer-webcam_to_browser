@@ -16,3 +16,5 @@ To run, simply enter:
     python cam_server.py
 
 in your Linux terminal.
+
+Right now, it is not possible to stop the server without sending a SIGTERM.  I am attempting to fix this.
