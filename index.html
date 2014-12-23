@@ -9,10 +9,15 @@
   var wsUri = "ws://localhost:8888/ws";
   var output;
   var websocket;
+  var img;
 
   function init()
   {
     output = document.getElementById("output");
+    img = document.createElement("img");
+    img.height = 480;
+    img.src = "";
+    output.appendChild(img);
     testWebSocket();
   }
 
@@ -42,16 +47,11 @@
     var image = evt.data;
     var imageURL = URL.createObjectURL(image);
 
-    var img = document.createElement("img");
-    img.height = 480;
     img.src = imageURL;
 
     img.onload = function(e) {
         window.URL.revokeObjectURL(this.imageURL);
     }
-
-    outDiv.innerHTML = "";
-    outDiv.appendChild(img);
 
     //console.log(evt.data);
   }
