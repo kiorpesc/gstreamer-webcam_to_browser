@@ -3,11 +3,15 @@ import tornado.websocket
 import tornado.httpserver
 import threading
 import time
-import base64
 import sys, os
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GObject, Gtk
+
+# Gstreamer 0.10 imports
+import pygst
+pygst.require("0.10")
+import gst
+import pygtk
+import gtk
+
 import json
 
 sockets = []
@@ -54,19 +58,19 @@ class MainPipeline():
 
     def gst_thread(self):
         print("Initializing GST Elements")
-        Gst.init(None)
+        #Gst.init(None)
 
-        self.pipeline = Gst.Pipeline.new("framegrabber")
+        self.pipeline = gst.Pipeline("framegrabber")
 
         # instantiate the camera source
-        self.videosrc = Gst.ElementFactory.make("v4l2src", "vid-src")
+        self.videosrc = gst.element_factory_make("v4l2src", "vid-src")
         self.videosrc.set_property("device", "/dev/video0")
 
         # instantiate the jpeg encoder
-        self.videoenc = Gst.ElementFactory.make("jpegenc", "vid-enc")
+        self.videoenc = gst.element_factory_make("jpegenc", "vid-enc")
 
         # instantiate the appsink - allows access to raw frame data
-        self.videosink = Gst.ElementFactory.make("appsink", "vid-sink")
+        self.videosink = gst.element_factory_make("appsink", "vid-sink")
         self.videosink.set_property("max-buffers", 3)
         self.videosink.set_property("drop", True)
         self.videosink.set_property("emit-signals", True)
@@ -82,13 +86,13 @@ class MainPipeline():
         # link the elements in order, adding a filter to ensure correct size and framerate
         print("Linking GST Elements")
         self.videosrc.link_filtered(self.videoenc,
-            Gst.caps_from_string('video/x-raw,width=640,height=480,format=YUY2,framerate=30/1'))
+            gst.caps_from_string('video/x-raw,width=640,height=480,format=YUY2,framerate=30/1'))
         self.videoenc.link(self.videosink)
 
         # start the video
         print("Setting Pipeline State")
-        self.pipeline.set_state(Gst.State.PAUSED)
-        self.pipeline.set_state(Gst.State.PLAYING)
+        self.pipeline.set_state(gst.STATE_PAUSED)
+        self.pipeline.set_state(gst.STATE_PLAYING)
 
 def start_server(app):
     http_server = tornado.httpserver.HTTPServer(application)
