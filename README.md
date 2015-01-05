@@ -2,13 +2,15 @@ gstreamer-webcam_to_browser
 ===========================
 
 Realtime webcam stream to a browser window using Python, Tornado, WebSockets, and Gstreamer
+This version uses Gstreamer 0.10, for compatibility with Debian Wheezy (default on BeagleBone Black)
+
 
 Dependencies:
 =============
 
 - Python
 - Tornado (pip install tornado)
-- GStreamer 1.0+
+- GStreamer 0.10
 - GStreamer Python bindings
 
 To run, simply enter:
