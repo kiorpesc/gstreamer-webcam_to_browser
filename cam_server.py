@@ -7,7 +7,7 @@ import base64
 import sys, os
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GObject, Gtk
+from gi.repository import Gst, GObject
 import json
 
 sockets = []
@@ -22,15 +22,15 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         global sockets
         sockets.append(self)
-        print 'new connection'
+        print('new connection')
 
     def on_message(self, message):
-        print 'message received %s' % message
+        print('message received %s' % message)
 
     def on_close(self):
         global sockets
         sockets.remove(self)
-        print 'connection closed'
+        print('connection closed')
 
     def check_origin(self, origin):
         return True
