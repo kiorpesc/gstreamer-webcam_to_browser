@@ -39,7 +39,7 @@ class MainPipeline():
     def __init__(self):
         self.pipeline = None
         self.videosrc = None
-        self.videoenc = None
+        self.videoparse = None
         self.videosink = None
         self.current_buffer = None
 
@@ -62,8 +62,8 @@ class MainPipeline():
         self.videosrc = Gst.ElementFactory.make("v4l2src", "vid-src")
         self.videosrc.set_property("device", "/dev/video0")
 
-        # instantiate the jpeg encoder
-        self.videoenc = Gst.ElementFactory.make("jpegenc", "vid-enc")
+        # instantiate the jpeg parser to ensure whole frames
+        self.videoparse = Gst.ElementFactory.make("jpegparse", "vid-parse")
 
         # instantiate the appsink - allows access to raw frame data
         self.videosink = Gst.ElementFactory.make("appsink", "vid-sink")
@@ -76,14 +76,14 @@ class MainPipeline():
         # add all the new elements to the pipeline
         print("Adding Elements to Pipeline")
         self.pipeline.add(self.videosrc)
-        self.pipeline.add(self.videoenc)
+        self.pipeline.add(self.videoparse)
         self.pipeline.add(self.videosink)
 
         # link the elements in order, adding a filter to ensure correct size and framerate
         print("Linking GST Elements")
-        self.videosrc.link_filtered(self.videoenc,
-            Gst.caps_from_string('video/x-raw,width=640,height=480,format=YUY2,framerate=30/1'))
-        self.videoenc.link(self.videosink)
+        self.videosrc.link_filtered(self.videoparse,
+            Gst.caps_from_string('image/jpeg,width=640,height=480,framerate=30/1'))
+        self.videoparse.link(self.videosink)
 
         # start the video
         print("Setting Pipeline State")
