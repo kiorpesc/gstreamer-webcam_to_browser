@@ -9,6 +9,7 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GObject
 import json
+import signal
 
 sockets = []
 
@@ -95,6 +96,11 @@ def start_server(app):
     http_server.listen(8888)
     tornado.ioloop.IOLoop.instance().start()
 
+def signal_handler(signum, frame):
+    print("Interrupt caught")
+    tornado.ioloop.IOLoop.instance().stop()
+    server_thread.stop()
+
 if __name__ == "__main__":
 
     application = tornado.web.Application([
@@ -115,9 +121,18 @@ if __name__ == "__main__":
     server_thread = threading.Thread(target=start_server, args=[application])
     server_thread.start()
 
+    # or you can use a custom handler,
+    # in which case recv will fail with EINTR
+    print("registering sigint")
+    signal.signal(signal.SIGINT, signal_handler)
+
     try:
+        print("gst_thread_join")
         gst_thread.join()
-        server_thread.join()
+        print("Pausing so that thread doesn't exit")
+        while(1):
+            time.sleep(1)
+
     except:
         print("exiting")
         exit(0)
