@@ -136,5 +136,3 @@ if __name__ == "__main__":
     except:
         print("exiting")
         exit(0)
-
-    
