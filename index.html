@@ -6,7 +6,7 @@
 
 <script language="javascript" type="text/javascript">
 
-  var wsUri = "ws://localhost:8888/ws";
+  var wsUri = "ws://192.168.1.125:8888/ws";
   var output;
   var websocket;
   var img;
@@ -19,6 +19,17 @@
     img.src = "";
     output.appendChild(img);
     testWebSocket();
+    window.setTimeout(sendCommandVector, 1000);
+  }
+
+  function sendCommandVector() {
+    if (websocket.readyState == 1) {
+      console.log("SENDING");
+      websocket.send(JSON.stringify(vector));
+      window.setTimeout(sendCommandVector, 100);
+    } else {
+      console.log("CONNECTION FAILED");
+    }
   }
 
   function testWebSocket()
@@ -76,6 +87,71 @@
   }
 
   window.addEventListener("load", init, false);
+  window.addEventListener("keydown", onKeyDown, false);
+  window.addEventListener("keyup", onKeyUp, false);
+  var vector=[255,0,0,0,0];
+  function onKeyDown(event){
+    var keyCode=event.keyCode;
+    switch(keyCode){
+      case 87: //w
+      vector[1] = 1;
+      break;
+  
+      case 65: //a
+      vector[3]=1;
+      break;
+  
+      case 83: //s
+      vector[2]=1;
+      break;
+  
+      case 68: //d
+      vector[4]=1;
+      break;
+  
+  //case 38: //Up Arrow
+  //vector[2]=1;
+  //break;
+  
+  //case 40: //Down Arrow
+  //vector[2]=-1;
+  //break;
+    }
+    console.log(vector.toString());
+  //commandAPI.thrust = vector;
+  
+  }
+
+  function onKeyUp(event){
+    var keyCode=event.keyCode;
+    switch(keyCode){
+      case 87: //w
+      vector[1] = 0;
+      break;
+  
+      case 65: //a
+      vector[3]=0;
+      break;
+  
+      case 83: //s
+      vector[2]=0;
+      break;
+  
+      case 68: //d
+      vector[4]=0;
+      break;
+  
+  //case 38: //Up Arrow
+  //vector[2]=0;
+  //break;
+  
+  //case 40: //Down Arrow
+  //vector[2]=0;
+  //break;
+    }
+    console.log(vector.toString());
+  //commandAPI.thrust = vector;
+  }
 
 </script>
 <body>
