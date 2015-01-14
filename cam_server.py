@@ -112,21 +112,20 @@ def parse_command_vector(s):
 
 
 def send_all(msg):
-    for ws in sockets:
+    for ws in cam_sockets:
         ws.write_message(msg, True)
 
 class CamWSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        global sockets
+        global cam_sockets
         cam_sockets.append(self)
         print('new camera connection')
 
     def on_message(self, message):
         print (message)
-        #parse_command_vector(JSON.loads(message))
 
     def on_close(self):
-        global sockets
+        global cam_sockets
         cam_sockets.remove(self)
         print('camera connection closed')
 
@@ -135,7 +134,7 @@ class CamWSHandler(tornado.websocket.WebSocketHandler):
 
 class KeyWSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        global sockets
+        global key_sockets
         key_sockets.append(self)
         print('new command connection')
 
@@ -144,7 +143,7 @@ class KeyWSHandler(tornado.websocket.WebSocketHandler):
         parse_command_vector(JSON.loads(message))
 
     def on_close(self):
-        global sockets
+        global key_sockets
         key_sockets.remove(self)
         print('command connection closed')
 
