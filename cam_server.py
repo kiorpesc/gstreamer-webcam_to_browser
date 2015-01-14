@@ -2,7 +2,6 @@ import tornado
 import tornado.websocket
 import tornado.httpserver
 import threading
-import json
 import time
 import base64
 import sys, os
@@ -12,7 +11,8 @@ from gi.repository import Gst, GObject
 import json
 import signal
 
-sockets = []
+cam_sockets = []
+key_sockets = []
 
 frame_grabber = None
 
@@ -34,6 +34,10 @@ motor_pwms = ["P9_14", "P9_21"]
 motor_ins = [["P9_11", "P9_12"], ["P9_25", "P9_26"]]
 STBY = "P9_27"
 
+# format of input in bytes: start_byte(255) + up + down + left + right
+CHUNK_SIZE = 5
+HOST = ''
+PORT = 50007
 
 def init_motors():
     """
@@ -48,13 +52,14 @@ def init_motors():
         for pin in motor:
             GPIO.setup(pin, GPIO.OUT)
             GPIO.output(pin, GPIO.LOW)
-    # initialize PWM pins
+                                                                             # initialize PWM pins
     # first need bogus start due to unknown bug in library
     PWM.start("P9_14", 0.0)
     PWM.stop("P9_14")
     # now start the desired PWMs
     for pwm_pin in motor_pwms:
         PWM.start(pwm_pin, 0.0)
+        # PWM.set_run(pwm_pin, 1)
 
 def set_motor(motor, direction, value):
     """
@@ -78,23 +83,23 @@ def parse_command_vector(s):
     left_dir = FORWARD
     right_speed = 0.0
     right_dir = FORWARD
-    if s[1] == 1:
+    if s[1] == chr(1):
         print('UP')
         left_speed = FORWARD_SPEED
         right_speed = FORWARD_SPEED
-    if s[2] == 1:
+    if s[2] == chr(1):
         print('DOWN')
         left_speed = FORWARD_SPEED
         right_speed = FORWARD_SPEED
         left_dir = BACKWARD
         right_dir = BACKWARD
-    if s[3] == 1:
+    if s[3] == chr(1):
         print('LEFT')
         left_speed = FORWARD_SPEED
         right_speed = FORWARD_SPEED
         left_dir = BACKWARD
         right_dir = FORWARD
-    if s[4] == 1:
+    if s[4] == chr(1):
         print('RIGHT')
         left_dir = FORWARD
         left_speed = FORWARD_SPEED
@@ -110,22 +115,38 @@ def send_all(msg):
     for ws in sockets:
         ws.write_message(msg, True)
 
-class WSHandler(tornado.websocket.WebSocketHandler):
+class CamWSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         global sockets
-        sockets.append(self)
-        print('new connection')
+        cam_sockets.append(self)
+        print('new camera connection')
 
     def on_message(self, message):
-        #print (message)
-        vector = json.loads(message)
-        print(vector)
-        parse_command_vector(vector)
+        print (message)
+        #parse_command_vector(JSON.loads(message))
 
     def on_close(self):
         global sockets
-        sockets.remove(self)
-        print('connection closed')
+        cam_sockets.remove(self)
+        print('camera connection closed')
+
+    def check_origin(self, origin):
+        return True
+
+class KeyWSHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        global sockets
+        key_sockets.append(self)
+        print('new command connection')
+
+    def on_message(self, message):
+        print (message)
+        parse_command_vector(JSON.loads(message))
+
+    def on_close(self):
+        global sockets
+        key_sockets.remove(self)
+        print('command connection closed')
 
     def check_origin(self, origin):
         return True
@@ -144,7 +165,7 @@ class MainPipeline():
         if sample is not None:
             self.current_buffer = sample.get_buffer()
             current_data = self.current_buffer.extract_dup(0, self.current_buffer.get_size())
-            #send_all(current_data)
+            send_all(current_data)
         return False
 
     def gst_thread(self):
@@ -185,9 +206,11 @@ class MainPipeline():
         self.pipeline.set_state(Gst.State.PAUSED)
         self.pipeline.set_state(Gst.State.PLAYING)
 
-def start_server(app):
-    http_server = tornado.httpserver.HTTPServer(application)
-    http_server.listen(8888)
+def start_server(args):
+    cam_server = tornado.httpserver.HTTPServer(args[0])
+    key_server = tornado.httpserver.HTTPServer(args[1])
+    cam_server.listen(8888)
+    key_server.listen(8889)
     tornado.ioloop.IOLoop.instance().start()
 
 def signal_handler(signum, frame):
@@ -199,8 +222,12 @@ if __name__ == "__main__":
 
     init_motors()
 
-    application = tornado.web.Application([
-        (r'/ws', WSHandler),
+    cam_app = tornado.web.Application([
+        (r'/ws', CamWSHandler),
+    ])
+
+    key_app = tornado.web.Application([
+        (r'/ws', KeyWSHandler)
     ])
 
     print("Starting GST thread...")
@@ -214,7 +241,7 @@ if __name__ == "__main__":
     print("starting frame grabber thread")
 
     print("Starting server thread")
-    server_thread = threading.Thread(target=start_server, args=[application])
+    server_thread = threading.Thread(target=start_server, args=[cam_app])
     server_thread.start()
 
     # or you can use a custom handler,
@@ -232,4 +259,3 @@ if __name__ == "__main__":
     except:
         print("exiting")
         exit(0)
-
