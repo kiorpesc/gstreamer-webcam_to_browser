@@ -34,11 +34,6 @@ motor_pwms = ["P9_14", "P9_21"]
 motor_ins = [["P9_11", "P9_12"], ["P9_25", "P9_26"]]
 STBY = "P9_27"
 
-# format of input in bytes: start_byte(255) + up + down + left + right
-CHUNK_SIZE = 5
-HOST = ''
-PORT = 50007
-
 def init_motors():
     """
     Initialize the pins needed for the motor driver.
@@ -52,14 +47,13 @@ def init_motors():
         for pin in motor:
             GPIO.setup(pin, GPIO.OUT)
             GPIO.output(pin, GPIO.LOW)
-                                                                             # initialize PWM pins
+    # initialize PWM pins
     # first need bogus start due to unknown bug in library
     PWM.start("P9_14", 0.0)
     PWM.stop("P9_14")
     # now start the desired PWMs
     for pwm_pin in motor_pwms:
         PWM.start(pwm_pin, 0.0)
-        # PWM.set_run(pwm_pin, 1)
 
 def set_motor(motor, direction, value):
     """
@@ -83,23 +77,23 @@ def parse_command_vector(s):
     left_dir = FORWARD
     right_speed = 0.0
     right_dir = FORWARD
-    if s[1] == chr(1):
+    if s[1] == 1:
         print('UP')
         left_speed = FORWARD_SPEED
         right_speed = FORWARD_SPEED
-    if s[2] == chr(1):
+    if s[2] == 1:
         print('DOWN')
         left_speed = FORWARD_SPEED
         right_speed = FORWARD_SPEED
         left_dir = BACKWARD
         right_dir = BACKWARD
-    if s[3] == chr(1):
+    if s[3] == 1:
         print('LEFT')
         left_speed = FORWARD_SPEED
         right_speed = FORWARD_SPEED
         left_dir = BACKWARD
         right_dir = FORWARD
-    if s[4] == chr(1):
+    if s[4] == 1:
         print('RIGHT')
         left_dir = FORWARD
         left_speed = FORWARD_SPEED
@@ -140,7 +134,7 @@ class KeyWSHandler(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         print (message)
-        parse_command_vector(JSON.loads(message))
+        parse_command_vector(json.loads(message))
 
     def on_close(self):
         global key_sockets
