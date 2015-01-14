@@ -205,9 +205,9 @@ class MainPipeline():
         self.pipeline.set_state(Gst.State.PAUSED)
         self.pipeline.set_state(Gst.State.PLAYING)
 
-def start_server(args):
-    cam_server = tornado.httpserver.HTTPServer(args[0])
-    key_server = tornado.httpserver.HTTPServer(args[1])
+def start_server(cam_app, key_app):
+    cam_server = tornado.httpserver.HTTPServer(cam_app)
+    key_server = tornado.httpserver.HTTPServer(key_app)
     cam_server.listen(8888)
     key_server.listen(8889)
     tornado.ioloop.IOLoop.instance().start()
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     print("starting frame grabber thread")
 
     print("Starting server thread")
-    server_thread = threading.Thread(target=start_server, args=[cam_app])
+    server_thread = threading.Thread(target=start_server, args=[cam_app, key_app])
     server_thread.start()
 
     # or you can use a custom handler,
