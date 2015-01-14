@@ -2,6 +2,7 @@ import tornado
 import tornado.websocket
 import tornado.httpserver
 import threading
+import json
 import time
 import base64
 import sys, os
@@ -15,6 +16,96 @@ sockets = []
 
 frame_grabber = None
 
+import Adafruit_BBIO.GPIO as GPIO
+import Adafruit_BBIO.PWM as PWM
+
+DEAD_ZONE = 10
+FORWARD_SPEED = 75.0
+TURN_SPEED = 50.0
+FORWARD = 1
+BACKWARD = -1
+LEFT = 0
+RIGHT = 1
+
+"""
+Output pins for the motor driver board:
+"""
+motor_pwms = ["P9_14", "P9_21"]
+motor_ins = [["P9_11", "P9_12"], ["P9_25", "P9_26"]]
+STBY = "P9_27"
+
+
+def init_motors():
+    """
+    Initialize the pins needed for the motor driver.
+    """
+    global motor_ins
+    global motor_pwms
+    # initialize GPIO pins
+    GPIO.setup(STBY, GPIO.OUT)
+    GPIO.output(STBY, GPIO.HIGH)
+    for motor in motor_ins:
+        for pin in motor:
+            GPIO.setup(pin, GPIO.OUT)
+            GPIO.output(pin, GPIO.LOW)
+    # initialize PWM pins
+    # first need bogus start due to unknown bug in library
+    PWM.start("P9_14", 0.0)
+    PWM.stop("P9_14")
+    # now start the desired PWMs
+    for pwm_pin in motor_pwms:
+        PWM.start(pwm_pin, 0.0)
+
+def set_motor(motor, direction, value):
+    """
+    Set an individual motor's direction and speed
+    """
+    if direction == BACKWARD: # For now, assume CW is forwards
+        # forwards: in1 LOW, in2 HIGH
+        GPIO.output(motor_ins[motor][0], GPIO.LOW)
+        GPIO.output(motor_ins[motor][1], GPIO.HIGH)
+    elif direction == FORWARD:
+        GPIO.output(motor_ins[motor][0], GPIO.HIGH)
+        GPIO.output(motor_ins[motor][1], GPIO.LOW)
+    else:
+        # there has been an error, stop motors
+        GPIO.output(STBY, GPIO.LOW)
+    PWM.set_duty_cycle(motor_pwms[motor], value)
+
+
+def parse_command_vector(s):
+    left_speed = 0.0
+    left_dir = FORWARD
+    right_speed = 0.0
+    right_dir = FORWARD
+    if s[1] == 1:
+        print('UP')
+        left_speed = FORWARD_SPEED
+        right_speed = FORWARD_SPEED
+    if s[2] == 1:
+        print('DOWN')
+        left_speed = FORWARD_SPEED
+        right_speed = FORWARD_SPEED
+        left_dir = BACKWARD
+        right_dir = BACKWARD
+    if s[3] == 1:
+        print('LEFT')
+        left_speed = FORWARD_SPEED
+        right_speed = FORWARD_SPEED
+        left_dir = BACKWARD
+        right_dir = FORWARD
+    if s[4] == 1:
+        print('RIGHT')
+        left_dir = FORWARD
+        left_speed = FORWARD_SPEED
+        right_speed = FORWARD_SPEED
+        right_dir = BACKWARD
+
+    set_motor(LEFT, left_dir, left_speed)
+    set_motor(RIGHT, right_dir, right_speed)
+
+
+
 def send_all(msg):
     for ws in sockets:
         ws.write_message(msg, True)
@@ -26,7 +117,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         print('new connection')
 
     def on_message(self, message):
-        print (message)
+        #print (message)
+        vector = json.loads(message)
+        print(vector)
+        parse_command_vector(vector)
 
     def on_close(self):
         global sockets
@@ -50,7 +144,7 @@ class MainPipeline():
         if sample is not None:
             self.current_buffer = sample.get_buffer()
             current_data = self.current_buffer.extract_dup(0, self.current_buffer.get_size())
-            send_all(current_data)
+            #send_all(current_data)
         return False
 
     def gst_thread(self):
@@ -103,6 +197,8 @@ def signal_handler(signum, frame):
 
 if __name__ == "__main__":
 
+    init_motors()
+
     application = tornado.web.Application([
         (r'/ws', WSHandler),
     ])
@@ -136,3 +232,4 @@ if __name__ == "__main__":
     except:
         print("exiting")
         exit(0)
+
