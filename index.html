@@ -6,8 +6,8 @@
 
 <script language="javascript" type="text/javascript">
 
-  var CamUri = "ws://192.168.1.125:8888/ws";
-  var KeyUri = "ws://192.168.1.125:8889/ws";
+  var CamUri = "ws://192.168.1.135:8888/ws";
+  var KeyUri = "ws://192.168.1.135:8889/ws";
   var output;
   var cam_socket;
   var key_socket;
@@ -17,7 +17,7 @@
   {
     output = document.getElementById("output");
     img = document.createElement("img");
-    img.height = 480;
+    img.height = 360;
     img.src = "";
     output.appendChild(img);
     testWebSocket();
@@ -102,30 +102,30 @@
       case 87: //w
       vector[1] = 1;
       break;
-  
+
       case 65: //a
       vector[3]=1;
       break;
-  
+
       case 83: //s
       vector[2]=1;
       break;
-  
+
       case 68: //d
       vector[4]=1;
       break;
-  
+
   //case 38: //Up Arrow
   //vector[2]=1;
   //break;
-  
+
   //case 40: //Down Arrow
   //vector[2]=-1;
   //break;
     }
     console.log(vector.toString());
   //commandAPI.thrust = vector;
-  
+
   }
 
   function onKeyUp(event){
@@ -134,23 +134,23 @@
       case 87: //w
       vector[1] = 0;
       break;
-  
+
       case 65: //a
       vector[3]=0;
       break;
-  
+
       case 83: //s
       vector[2]=0;
       break;
-  
+
       case 68: //d
       vector[4]=0;
       break;
-  
+
   //case 38: //Up Arrow
   //vector[2]=0;
   //break;
-  
+
   //case 40: //Down Arrow
   //vector[2]=0;
   //break;
