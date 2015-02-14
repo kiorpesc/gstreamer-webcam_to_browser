@@ -16,8 +16,8 @@ key_sockets = []
 
 frame_grabber = None
 
-import Adafruit_BBIO.GPIO as GPIO
-import Adafruit_BBIO.PWM as PWM
+#import Adafruit_BBIO.GPIO as GPIO
+#import Adafruit_BBIO.PWM as PWM
 
 DEAD_ZONE = 10
 FORWARD_SPEED = 75.0
@@ -38,7 +38,7 @@ def init_motors():
     """
     Initialize the pins needed for the motor driver.
     """
-    global motor_ins
+    """global motor_ins
     global motor_pwms
     # initialize GPIO pins
     GPIO.setup(STBY, GPIO.OUT)
@@ -53,13 +53,13 @@ def init_motors():
     PWM.stop("P9_14")
     # now start the desired PWMs
     for pwm_pin in motor_pwms:
-        PWM.start(pwm_pin, 0.0)
+        PWM.start(pwm_pin, 0.0)"""
 
 def set_motor(motor, direction, value):
     """
     Set an individual motor's direction and speed
     """
-    if direction == BACKWARD: # For now, assume CW is forwards
+    """if direction == BACKWARD: # For now, assume CW is forwards
         # forwards: in1 LOW, in2 HIGH
         GPIO.output(motor_ins[motor][0], GPIO.LOW)
         GPIO.output(motor_ins[motor][1], GPIO.HIGH)
@@ -69,11 +69,11 @@ def set_motor(motor, direction, value):
     else:
         # there has been an error, stop motors
         GPIO.output(STBY, GPIO.LOW)
-    PWM.set_duty_cycle(motor_pwms[motor], value)
+    PWM.set_duty_cycle(motor_pwms[motor], value)"""
 
 
 def parse_command_vector(s):
-    left_speed = 0.0
+    """left_speed = 0.0
     left_dir = FORWARD
     right_speed = 0.0
     right_dir = FORWARD
@@ -101,7 +101,7 @@ def parse_command_vector(s):
         right_dir = BACKWARD
 
     set_motor(LEFT, left_dir, left_speed)
-    set_motor(RIGHT, right_dir, right_speed)
+    set_motor(RIGHT, right_dir, right_speed)"""
 
 
 
@@ -143,6 +143,10 @@ class KeyWSHandler(tornado.websocket.WebSocketHandler):
 
     def check_origin(self, origin):
         return True
+
+class HTTPServer(tornado.web.RequestHandler):
+    def get(self):
+        self.render("index.html")
 
 class MainPipeline():
     def __init__(self):
@@ -217,11 +221,13 @@ if __name__ == "__main__":
 
     cam_app = tornado.web.Application([
         (r'/ws', CamWSHandler),
+        (r'/', HTTPServer),
     ])
 
     key_app = tornado.web.Application([
         (r'/ws', KeyWSHandler)
     ])
+
 
     print("Starting GST thread...")
 

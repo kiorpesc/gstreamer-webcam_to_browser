@@ -6,8 +6,9 @@
 
 <script language="javascript" type="text/javascript">
 
-  var CamUri = "ws://192.168.1.135:8888/ws";
-  var KeyUri = "ws://192.168.1.135:8889/ws";
+  var ip = location.host;
+  var CamUri = "ws://" + ip + "/ws";
+  var KeyUri = "ws://" + ip.replace("8888", "8889") + "/ws";
   var output;
   var cam_socket;
   var key_socket;
